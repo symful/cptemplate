@@ -7,6 +7,79 @@ const int MOD = 1e9 + 7;
 long long fact[MAXN];
 long long invFact[MAXN];
 
+pair<long, long> decimalToRelational(double decimal) {
+    // Handle special cases
+    if (std::isnan(decimal) || std::isinf(decimal)) {
+        return {0, 1};  // Or handle as error
+    }
+
+    // Handle negative numbers
+    long sign = 1;
+    if (decimal < 0) {
+        sign = -1;
+        decimal = -decimal;
+    }
+
+    // Separate integer and fractional parts
+    long integerPart = static_cast<long>(decimal);
+    double fractionalPart = decimal - integerPart;
+
+    // If no fractional part, return as integer
+    if (fractionalPart == 0) {
+        return {sign * integerPart, 1};
+    }
+
+    // Use continued fraction method for better precision
+    long numerator = 1;
+    long denominator = 1;
+    double error = 1e-12;  // Desired precision
+
+    // Handle the fractional part using continued fractions
+    long a = static_cast<long>(fractionalPart);
+    long b = 1;
+    long c = 1;
+    long d = 0;
+
+    while (true) {
+        // Calculate next convergent
+        long newNumerator = a * numerator + c;
+        long newDenominator = a * denominator + d;
+
+        // Check if this approximation is close enough
+        double approx = static_cast<double>(newNumerator) / newDenominator;
+        if (std::abs(approx - fractionalPart) < error * newDenominator) {
+            numerator = newNumerator;
+            denominator = newDenominator;
+            break;
+        }
+
+        // Update for next iteration
+        c = numerator;
+        d = denominator;
+        numerator = newNumerator;
+        denominator = newDenominator;
+
+        // Calculate next partial quotient
+        double remaining = 1.0 / (fractionalPart - static_cast<double>(a));
+        a = static_cast<long>(remaining);
+
+        // Safety check to prevent infinite loops
+        if (denominator > 1000000) {
+            break;
+        }
+    }
+
+    // Combine with integer part
+    numerator = integerPart * denominator + numerator;
+
+    // Apply sign and reduce fraction
+    long gcd = std::gcd(numerator, denominator);
+    numerator /= gcd;
+    denominator /= gcd;
+
+    return {sign * numerator, denominator};
+}
+
 // Fast exponentiation: O(log power)
 long long power(long long base, long long exp) {
     long long res = 1;
