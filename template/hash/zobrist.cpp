@@ -1,7 +1,4 @@
-#include <iostream>
-#include <map>
-#include <random>
-#include <chrono>
+#include <bits/stdc++.h>
 
 using namespace std;
 

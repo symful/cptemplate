@@ -82,7 +82,7 @@ int dijkstra_spec(int n, const vector<vector<Edge>>& adj, int src, int target) {
 int main() {
     {
         int n = 4;
-        std::vector<std::vector<Edge>> adj(n);
+        vector<vector<Edge>> adj(n);
 
         // Koneksi node 0 ke node 1 dengan weight 1
         adj[0].emplace_back(1, 1);
@@ -97,16 +97,16 @@ int main() {
         // Mencari semua jarak terpendek dari titik 0 ke semua titik
 
         int source = 0;
-        std::vector<int> shortest_paths = dijkstra_all(n, adj, source);
+        vector<int> shortest_paths = dijkstra_all(n, adj, source);
 
-        std::cout << "Jarak terpendek dari titik " << source << ":\n";
+        cout << "Jarak terpendek dari titik " << source << ":\n";
         for (int i = 0; i < n; ++i) {
-            std::cout << "- ke titik " << i << " adalah sepanjang " << shortest_paths[i] << "\n";
+            cout << "- ke titik " << i << " adalah sepanjang " << shortest_paths[i] << "\n";
         }
 
         int target = 3;
         int shortest_path = dijkstra_spec(n, adj, source, target);
-        std::cout << "Jarak terpendek dari titik " << source << " ke titik " << target << " adalah " << shortest_path << "\n";
+        cout << "Jarak terpendek dari titik " << source << " ke titik " << target << " adalah " << shortest_path << "\n";
     }
 
     return 0;

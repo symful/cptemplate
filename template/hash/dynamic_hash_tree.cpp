@@ -1,8 +1,5 @@
-#include <iostream>
-#include <vector>
-#include <string>
-#include <random>
-#include <chrono>
+#include <bits/stdc++.h>
+
 
 using namespace std;
 

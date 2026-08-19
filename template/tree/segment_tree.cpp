@@ -12,7 +12,7 @@ private:
     // MAX:   return max(a, b);      ID: INT_MIN
     // XOR:   return a ^ b;          ID: 0
     // PROD:  return a * b;          ID: 1
-    // GCD:   return std::gcd(a,b);  ID: 0
+    // GCD:   return gcd(a,b);  ID: 0
     int combine(int a, int b) { return a + b; }
     int identity() { return 0; }
     // ===============================================================
