@@ -5,6 +5,7 @@ class SegmentTree {
 private:
     vector<long long> tree;
     int n;
+    int height;
 
     // =================== CONFIG (The Cheat Sheet) ===================
 
@@ -55,6 +56,8 @@ private:
 public:
     SegmentTree(const vector<int>& arr) {
         n = arr.size();
+        height = 0;
+        while ((1 << height) < n) ++height;
         tree.assign(4 * n, identity());
         if (n > 0) build(arr, 1, 0, n - 1, 0);
     }
@@ -68,6 +71,7 @@ private:
     vector<long long> tree, lazy;
     vector<bool> has_lazy;
     int n;
+    int height;
 
     // =================== CONFIG (The Cheat Sheet) ===================
 
@@ -143,6 +147,8 @@ private:
 public:
     LazySegmentTree(const vector<int>& arr) {
         n = arr.size();
+        height = 0;
+        while ((1 << height) < n) ++height;
         tree.assign(4 * n, identity());
         lazy.assign(4 * n, lazy_identity());
         has_lazy.assign(4 * n, false);
