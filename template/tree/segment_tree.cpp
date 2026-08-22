@@ -11,7 +11,7 @@ private:
 
     // --- 1. IDENTITY ---
     // SUM / XOR / GCD:  0
-    // PROD:             1
+    // PROD / LCM:       1
     // MIN:              2e18  (Use a safe INF)
     // MAX:             -2e18  (Use a safe -INF)
     long long identity() { return 0; }
@@ -23,6 +23,7 @@ private:
     // XOR:  return a ^ b;
     // PROD: return a * b; // Or (a * b) % MOD
     // GCD:  return std::gcd(a, b);
+    // LCM:  return a / gcd(a, b) * b;
     // ALT:  return (level % 2 == 0) ? (a ^ b) : (a | b);
     long long combine(long long a, long long b, int level) {
         return a + b;
