@@ -160,6 +160,91 @@ public:
     long long query(int l, int r) { return query(1, 0, n - 1, l, r, 0); }
 };
 
+template <typename T>
+class RMQSegmentTree {
+public:
+    struct Node {
+        T val;
+        int idx;
+    };
+
+private:
+    vector<Node> tree;
+    int n;
+
+    // =================== CONFIG (The Cheat Sheet) ===================
+
+    // --- 1. IDENTITY ---
+    // Range MAX: Set to negative infinity (or safe min value), idx = -1
+    // Range MIN: Set to positive infinity (or safe max value), idx = -1
+    Node identity() {
+        return {numeric_limits<T>::lowest(), -1};
+    }
+
+    // --- 2. COMBINE ---
+    // Range MAX: return (a.val >= b.val) ? a : b;
+    // Range MIN: return (a.val <= b.val) ? a : b;
+    Node combine(const Node& a, const Node& b) {
+        if (a.idx == -1) return b;
+        if (b.idx == -1) return a;
+        return (a.val >= b.val) ? a : b; // Default is Range MAX
+    }
+    // ================================================================
+
+    void build(const vector<T>& arr, int idx, int l, int r) {
+        if (l == r) {
+            tree[idx] = {arr[l], l};
+            return;
+        }
+        int m = l + (r - l) / 2;
+        build(arr, idx * 2, l, m);
+        build(arr, idx * 2 + 1, m + 1, r);
+        tree[idx] = combine(tree[idx * 2], tree[idx * 2 + 1]);
+    }
+
+    void update(int idx, int l, int r, int pos, T val) {
+        if (l == r) {
+            tree[idx] = {val, pos};
+            return;
+        }
+        int m = l + (r - l) / 2;
+        if (pos <= m) update(idx * 2, l, m, pos, val);
+        else update(idx * 2 + 1, m + 1, r, pos, val);
+        tree[idx] = combine(tree[idx * 2], tree[idx * 2 + 1]);
+    }
+
+    Node query(int idx, int l, int r, int ql, int qr) {
+        if (qr < l || r < ql) return identity();
+        if (ql <= l && r <= qr) return tree[idx];
+        int m = l + (r - l) / 2;
+        return combine(query(idx * 2, l, m, ql, qr),
+                       query(idx * 2 + 1, m + 1, r, ql, qr));
+    }
+
+public:
+    RMQSegmentTree() : n(0) {}
+
+    RMQSegmentTree(const vector<T>& arr) {
+        n = arr.size();
+        tree.assign(4 * n, identity());
+        if (n > 0) build(arr, 1, 0, n - 1);
+    }
+
+    // Point update at 0-indexed pos
+    void update(int pos, T val) {
+        update(1, 0, n - 1, pos, val);
+    }
+
+    // Range query [l, r] inclusive (0-indexed)
+    Node query(int l, int r) {
+        return query(1, 0, n - 1, l, r);
+    }
+
+    // Helper accessors
+    T query_val(int l, int r) { return query(l, r).val; }
+    int query_idx(int l, int r) { return query(l, r).idx; }
+};
+
 int main() {
     ios::sync_with_stdio(false); cin.tie(nullptr);
     int n, q; cin >> n >> q;
