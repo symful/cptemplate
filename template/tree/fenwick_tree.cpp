@@ -222,38 +222,6 @@ private:
         for (int y = 0; y < n; y++) {
             for (int x = 0; x < m; x++) {
 
-                bit[x + 1][y + 1] =
-                    combine(bit[x + 1][y + 1], input[y][x]);
-
-                int px = (x + 1) + ((x + 1) & -(x + 1));
-                int py = (y + 1) + ((y + 1) & -(y + 1));
-
-                // Push the current value in the X direction.
-                if (px <= m) {
-                    bit[px][y + 1] =
-                        combine(bit[px][y + 1], bit[x + 1][y + 1]);
-                }
-
-                // Push the current value in the Y direction.
-                if (py <= n) {
-                    bit[x + 1][py] =
-                        combine(bit[x + 1][py], bit[x + 1][y + 1]);
-                }
-            }
-        }
-
-        // The simple propagation above does not correctly propagate
-        // every 2D Fenwick rectangle by itself. Rebuild using add()
-        // to preserve the exact behavior of the 1D template.
-        //
-        // Clear the tree first.
-        for (int x = 0; x <= m; x++) {
-            fill(bit[x].begin(), bit[x].end(), identity());
-        }
-
-        // Build using point additions.
-        for (int y = 0; y < n; y++) {
-            for (int x = 0; x < m; x++) {
                 if (input[y][x] != identity()) {
                     add(x, y, input[y][x]);
                 }
@@ -359,13 +327,6 @@ public:
             n,
             vector<long long>(m, identity())
         );
-
-        // Copy the original array.
-        for (int y = 0; y < n; y++) {
-            for (int x = 0; x < m; x++) {
-                arr[y][x] = input[y][x];
-            }
-        }
 
         if (n > 0 && m > 0) {
             build(input);
