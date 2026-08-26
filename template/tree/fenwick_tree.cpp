@@ -34,7 +34,7 @@ private:
     }
     // ================================================================
 
-    void build(vector<int>& arr) {
+    void build(vector<long long>& arr) {
         for (int i = 1; i <= n; i++) {
             bit[i] = combine(bit[i], arr[i - 1]);
             int p = i + (i & -i);
@@ -61,7 +61,7 @@ private:
     }
 
 public:
-    FenwickTree(vector<int>& arr) {
+    FenwickTree(vector<long long>& arr) {
         n = arr.size();
         bit.assign(n + 1, identity());
         if (n > 0) build(arr);
@@ -204,8 +204,8 @@ public:
 int main() {
     ios::sync_with_stdio(false); cin.tie(nullptr);
     int n, q; cin >> n >> q;
-    vector<int> arr(n);
-    for (int& x : arr) cin >> x;
+    vector<long long> arr(n);
+    for (long long& x : arr) cin >> x;
     FenwickTree fw(arr);
     while (q--) {
         int c, l, r; cin >> c >> l >> r;
