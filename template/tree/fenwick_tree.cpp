@@ -127,317 +127,76 @@ public:
 };
 
 class FenwickTree2D {
-
 private:
-
-    // Actual dimensions of the array.
     int n, m;
-
-    // Fenwick tree storage.
-    //
-    // The actual array is 0-indexed:
-    //
-    //      arr[y][x]
-    //
-    // while the Fenwick tree itself is internally 1-indexed:
-    //
-    //      bit[x + 1][y + 1]
-    //
-    // Each cell stores an aggregate over a rectangle
-    // determined by:
-    //
-    //      lowbit(x) = x & -x
-    //      lowbit(y) = y & -y
-    //
     vector<vector<long long>> bit;
+    long long MOD = 1e9 + 7;
 
-    // Store the actual array.
-    //
-    // This is technically not required for Fenwick itself,
-    // but it allows us to implement:
-    //
-    //      get(x, y)
-    //      update(x, y, value)
-    //
-    // efficiently.
-    //
-    // IMPORTANT:
-    //      arr is 0-indexed.
-    vector<vector<long long>> arr;
+    // ---------- CONFIG (same as 1D) ----------
+    long long identity() { return 0; }
+    long long combine(long long a, long long b) { return a + b; }
+    long long inverse(long long a) { return -a; }
+    // -----------------------------------------
 
-
-    // ================================================================
-    // CONFIG (The Cheat Sheet)
-    // ================================================================
-
-    long long MOD = 1e9 + 7; // Useful for modular operations
-
-
-    // --- 1. IDENTITY ---
-    // SUM / XOR / MOD_SUM: 0
-    // PROD / MOD_PROD:     1
-    //
-    // For MIN:
-    //      +INF
-    //
-    // For MAX:
-    //      -INF
-    //
-    long long identity() {
-        return 0;
+    // Add delta at (x, y) – 0‑based
+    void add(int x, int y, long long delta) {
+        for (int i = x + 1; i <= m; i += (i & -i))
+            for (int j = y + 1; j <= n; j += (j & -j))
+                bit[i][j] = combine(bit[i][j], delta);
     }
 
-
-    // --- 2. COMBINE ---
-    // SUM:      return a + b;
-    // XOR:      return a ^ b;
-    // PROD:     return a * b;
-    // MOD_SUM:  return (a + b) % MOD;
-    // MOD_PROD: return (a * b) % MOD;
-    //
-    long long combine(long long a, long long b) {
-        return a + b;
-    }
-
-
-    // --- 3. INVERSE (Crucial for Range Queries) ---
-    // SUM:      return -a;
-    // XOR:      return a; (XOR is its own inverse)
-    // MOD_SUM:  return (MOD - a) % MOD;
-    // MOD_PROD: return modInverse(a);
-    //           (Requires binary exponentiation:
-    //            binpow(a, MOD - 2))
-    //
-    long long inverse(long long a) {
-        return -a;
-    }
-
-
-    // ================================================================
-    // BUILD
-    // ================================================================
-
-    void build(const vector<vector<long long>>& input) {
-
-        for (int y = 0; y < n; y++) {
-            for (int x = 0; x < m; x++) {
-
-                if (input[y][x] != identity()) {
-                    add(x, y, input[y][x]);
-                }
-            }
-        }
-    }
-
-
-    // ================================================================
-    // PREFIX
-    // ================================================================
-
+    // Prefix sum [0..x] × [0..y]
     long long prefix(int x, int y) {
-
         long long res = identity();
-
-        // Convert 0-indexed coordinates to 1-indexed Fenwick
-        // coordinates.
-        //
-        // Same idea as the 1D version:
-        //
-        //      pos + 1
-        //
-        for (int i = x + 1; i > 0; i -= (i & -i)) {
-
-            for (int j = y + 1; j > 0; j -= (j & -j)) {
-
+        for (int i = x + 1; i > 0; i -= (i & -i))
+            for (int j = y + 1; j > 0; j -= (j & -j))
                 res = combine(res, bit[i][j]);
-            }
-        }
-
         return res;
     }
 
-
-    // ================================================================
-    // GET
-    // ================================================================
-
-    long long get(int x, int y) {
-
-        return arr[y][x];
-    }
-
-
-    // ================================================================
-    // ADD
-    // ================================================================
-
-    void add(int x, int y, long long delta) {
-
-        // Convert 0-indexed coordinates to 1-indexed Fenwick
-        // coordinates.
-        //
-        // Same idea as the 1D version:
-        //
-        //      pos + 1
-        //
-        for (int i = x + 1; i <= m; i += (i & -i)) {
-
-            for (int j = y + 1; j <= n; j += (j & -j)) {
-
-                bit[i][j] = combine(bit[i][j], delta);
-            }
-        }
-
-        // Keep the actual array synchronized.
-        arr[y][x] = combine(arr[y][x], delta);
-    }
-
-
 public:
-
-    // ================================================================
-    // CONSTRUCTOR
-    // ================================================================
-    //
-    // Same behavior as the original 1D FenwickTree.
-    //
-    // The input array is 0-indexed:
-    //
-    //      arr[y][x]
-    //
-    // Example:
-    //
-    //      vector<vector<int>> arr(n, vector<int>(m));
-    //      FenwickTree2D ft(arr);
-    //
-    // ================================================================
-
-    FenwickTree2D(vector<vector<long long>>& input) {
-
+    // Constructor: input is 0‑indexed [y][x]
+    FenwickTree2D(const vector<vector<long long>>& input) {
         n = input.size();
-
         m = (n > 0 ? input[0].size() : 0);
-
-        bit.assign(
-            m + 1,
-            vector<long long>(n + 1, identity())
-        );
-
-        arr.assign(
-            n,
-            vector<long long>(m, identity())
-        );
-
+        bit.assign(m + 1, vector<long long>(n + 1, identity()));
         if (n > 0 && m > 0) {
-            build(input);
+            for (int y = 0; y < n; ++y)
+                for (int x = 0; x < m; ++x)
+                    if (input[y][x] != identity())
+                        add(x, y, input[y][x]);
         }
     }
 
-
-    // ================================================================
-    // POINT UPDATE (Safely sets arr[y][x] = val)
-    // ================================================================
-    //
-    // Same behavior as the original 1D version.
-    //
-    // Since Fenwick naturally supports ADD rather than SET,
-    // calculate:
-    //
-    //      delta = new_value - old_value
-    //
-    // and apply that delta.
-    //
-    // ================================================================
-
-    void update(int x, int y, long long val) {
-
-        long long delta = combine(
-            val,
-            inverse(get(x, y))
+    // Point value at (x, y) – computed from BIT (no auxiliary array)
+    long long get(int x, int y) {
+        return combine(
+            combine(prefix(x, y), inverse(prefix(x - 1, y))),
+            combine(inverse(prefix(x, y - 1)), prefix(x - 1, y - 1))
         );
+    }
 
+    // Set arr[y][x] = val
+    void update(int x, int y, long long val) {
+        long long delta = combine(val, inverse(get(x, y)));
         add(x, y, delta);
     }
 
-
-    // ================================================================
-    // POINT ADD (arr[y][x] += val)
-    // ================================================================
-    //
-    // Faster than update() if you already know the delta.
-    //
-    // ================================================================
-
+    // Add val to arr[y][x] (faster when you already know the delta)
     void point_add(int x, int y, long long val) {
-
         add(x, y, val);
     }
 
-
-    // ================================================================
-    // PREFIX QUERY
-    // ================================================================
-    //
-    // Returns the aggregate of:
-    //
-    //      [0..x] × [0..y]
-    //
-    // Example:
-    //
-    //      prefix(2, 3)
-    //
-    // means:
-    //
-    //      arr[0][0] ... arr[2][3]
-    //
-    // ================================================================
-
+    // Prefix query [0..x] × [0..y]
     long long prefix_query(int x, int y) {
-
         return prefix(x, y);
     }
 
-
-    // ================================================================
-    // RANGE QUERY [x1..x2] × [y1..y2]
-    // ================================================================
-    //
-    // Returns the aggregate inside the inclusive rectangle:
-    //
-    //      x1 <= x <= x2
-    //      y1 <= y <= y2
-    //
-    //
-    // Since prefix() gives:
-    //
-    //      [0..x] × [0..y]
-    //
-    // we use inclusion-exclusion:
-    //
-    //
-    //      P(x2, y2)
-    //    - P(x1-1, y2)
-    //    - P(x2, y1-1)
-    //    + P(x1-1, y1-1)
-    //
-    // ================================================================
-
-    long long query(
-        int x1,
-        int y1,
-        int x2,
-        int y2
-    ) {
-
+    // Range query: inclusive rectangle [x1..x2] × [y1..y2]
+    long long query(int x1, int y1, int x2, int y2) {
         return combine(
-            combine(
-                prefix(x2, y2),
-                inverse(prefix(x1 - 1, y2))
-            ),
-            combine(
-                inverse(prefix(x2, y1 - 1)),
-                prefix(x1 - 1, y1 - 1)
-            )
+            combine(prefix(x2, y2), inverse(prefix(x1 - 1, y2))),
+            combine(inverse(prefix(x2, y1 - 1)), prefix(x1 - 1, y1 - 1))
         );
     }
 };
