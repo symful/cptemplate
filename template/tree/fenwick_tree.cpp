@@ -258,6 +258,26 @@ public:
     // ==============================================================
 };
 
+struct Compressor {
+    vector<ll> vals;
+    Compressor() {}
+    Compressor(const vector<ll>& v) { add(v); }
+
+    void add(ll x) { vals.push_back(x); }
+    void add(const vector<ll>& v) { vals.insert(vals.end(), v.begin(), v.end()); }
+
+    void build() {
+        sort(vals.begin(), vals.end());
+        vals.erase(unique(vals.begin(), vals.end()), vals.end());
+    }
+
+    int get_idx(ll x) const {
+        return lower_bound(vals.begin(), vals.end(), x) - vals.begin();
+    }
+
+    int size() const { return (int)vals.size(); }
+};
+
 int main() {
     ios::sync_with_stdio(false); cin.tie(nullptr);
     int n, q; cin >> n >> q;
