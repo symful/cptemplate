@@ -258,24 +258,28 @@ public:
     // ==============================================================
 };
 
-struct Compressor {
-    vector<ll> vals;
+template<typename T>
+class Compressor {
+private:
+    vector<T> vals;
+public:
     Compressor() {}
-    Compressor(const vector<ll>& v) { add(v); }
+    Compressor(const vector<T>& v) { add(v); }
 
-    void add(ll x) { vals.push_back(x); }
-    void add(const vector<ll>& v) { vals.insert(vals.end(), v.begin(), v.end()); }
+    void add(const T& x) { vals.push_back(x); }
+    void add(const vector<T>& v) { vals.insert(vals.end(), v.begin(), v.end()); }
 
     void build() {
         sort(vals.begin(), vals.end());
         vals.erase(unique(vals.begin(), vals.end()), vals.end());
     }
 
-    int get_idx(ll x) const {
+    int compress(const T& x) const {
         return lower_bound(vals.begin(), vals.end(), x) - vals.begin();
     }
 
-    int size() const { return (int)vals.size(); }
+    int size() const { return vals.size(); }
+    const vector<T>& values() const { return vals; }
 };
 
 int main() {
