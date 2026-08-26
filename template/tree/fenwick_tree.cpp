@@ -82,6 +82,37 @@ public:
     long long query(int l, int r) {
         return combine(prefix(r), inverse(prefix(l - 1)));
     }
+
+    // ===================== NEW PUBLIC METHODS =====================
+
+    // Public wrapper for prefix sum [0..pos]
+    long long prefix_sum(int pos) {
+        return prefix(pos);
+    }
+
+    // Sum of all elements (total active count, etc.)
+    long long total_sum() {
+        return prefix(n - 1);
+    }
+
+    // Find the smallest index idx (0‑based) such that prefix_sum(idx) >= k.
+    // k is 1‑based (k = 1 -> first element, k = total_sum() -> last).
+    // Assumes all values are non‑negative and 1 <= k <= total_sum().
+    int find_kth(int k) {
+        int idx = 0;
+        // highest power of two <= n
+        int bitMask = 1;
+        while ((bitMask << 1) <= n) bitMask <<= 1;
+        for (int step = bitMask; step; step >>= 1) {
+            int next = idx + step;
+            if (next <= n && bit[next] < k) {
+                idx = next;
+                k -= bit[next];
+            }
+        }
+        return idx; // 0‑based index of the k‑th element
+    }
+    // ==============================================================
 };
 
 class RangeFenwickTree {
@@ -124,6 +155,19 @@ public:
     long long query(int l, int r) {
         return prefix(r) - prefix(l - 1);
     }
+
+    // ===================== NEW PUBLIC METHODS =====================
+
+    // Query the value at a single position (after range updates)
+    long long point_query(int pos) {
+        return query(pos, pos);
+    }
+
+    // Alias for query (keeps naming consistent with other trees)
+    long long range_sum(int l, int r) {
+        return query(l, r);
+    }
+    // ==============================================================
 };
 
 class FenwickTree2D {
@@ -199,6 +243,19 @@ public:
             combine(inverse(prefix(x2, y1 - 1)), prefix(x1 - 1, y1 - 1))
         );
     }
+
+    // ===================== NEW PUBLIC METHODS =====================
+
+    // Alias for get() – returns value at a single point
+    long long point_query(int x, int y) {
+        return get(x, y);
+    }
+
+    // Alias for query() – rectangle sum
+    long long rectangle_sum(int x1, int y1, int x2, int y2) {
+        return query(x1, y1, x2, y2);
+    }
+    // ==============================================================
 };
 
 int main() {
