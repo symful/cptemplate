@@ -245,6 +245,76 @@ public:
     int query_idx(int l, int r) { return query(l, r).idx; }
 };
 
+class FenwickTree2D {
+private:
+    int n, m;                     // n = rows, m = cols
+    vector<vector<long long>> bit; // bit[col+1][row+1] (1‑based internally)
+
+    long long identity() { return 0; }
+    long long combine(long long a, long long b) { return a + b; }
+    long long inverse(long long a) { return -a; }
+
+    // Add delta at (x, y) – 0‑based column x, row y
+    void add(int x, int y, long long delta) {
+        for (int i = x + 1; i <= m; i += (i & -i))
+            for (int j = y + 1; j <= n; j += (j & -j))
+                bit[i][j] = combine(bit[i][j], delta);
+    }
+
+    // Prefix sum [0..x] × [0..y]
+    long long prefix(int x, int y) {
+        long long res = identity();
+        for (int i = x + 1; i > 0; i -= (i & -i))
+            for (int j = y + 1; j > 0; j -= (j & -j))
+                res = combine(res, bit[i][j]);
+        return res;
+    }
+
+public:
+    // Constructor: input is 0‑indexed [row][col] = arr[y][x]
+    FenwickTree2D(const vector<vector<long long>>& input) {
+        n = input.size();
+        m = (n > 0 ? input[0].size() : 0);
+        bit.assign(m + 1, vector<long long>(n + 1, identity()));
+        for (int y = 0; y < n; ++y)
+            for (int x = 0; x < m; ++x)
+                if (input[y][x] != identity())
+                    add(x, y, input[y][x]);
+    }
+
+    // Point value at (x, y) – computed from BIT
+    long long get(int x, int y) {
+        return combine(
+            combine(prefix(x, y), inverse(prefix(x - 1, y))),
+            combine(inverse(prefix(x, y - 1)), prefix(x - 1, y - 1))
+        );
+    }
+
+    // Set arr[y][x] = val
+    void update(int x, int y, long long val) {
+        long long delta = combine(val, inverse(get(x, y)));
+        add(x, y, delta);
+    }
+
+    // Add val to arr[y][x]
+    void point_add(int x, int y, long long val) {
+        add(x, y, val);
+    }
+
+    // Prefix query [0..x] × [0..y]
+    long long prefix_query(int x, int y) {
+        return prefix(x, y);
+    }
+
+    // Range query: inclusive rectangle [x1..x2] × [y1..y2]
+    long long query(int x1, int y1, int x2, int y2) {
+        return combine(
+            combine(prefix(x2, y2), inverse(prefix(x1 - 1, y2))),
+            combine(inverse(prefix(x2, y1 - 1)), prefix(x1 - 1, y1 - 1))
+        );
+    }
+};
+
 int main() {
     ios::sync_with_stdio(false); cin.tie(nullptr);
     int n, q; cin >> n >> q;
