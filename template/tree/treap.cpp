@@ -171,3 +171,27 @@ public:
         return res;
     }
 };
+int main() {
+    Treap t;
+    t.insert(10);
+    t.insert(5);
+    t.insert(15);
+    t.insert(7);
+    t.insert(12);
+
+    cout << "Inorder: ";
+    for (int x : t.inorder()) cout << x << " ";
+    cout << "\n";
+
+    cout << "Predecessor of 8: " << t.predecessor(8) << "\n";  // 7
+    cout << "Successor of 8: " << t.successor(8) << "\n";      // 10
+    cout << "k=2 (3rd smallest): " << t.kth(2) << "\n";        // 10
+    cout << "Count less than 10: " << t.count_less(10) << "\n";// 2 (5,7)
+
+    t.erase(7);
+    cout << "After erase 7: ";
+    for (int x : t.inorder()) cout << x << " ";
+    cout << "\n";
+
+    return 0;
+}
