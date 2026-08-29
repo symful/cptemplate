@@ -90,14 +90,14 @@ public:
         return prefix(pos);
     }
 
-    // Sum of all elements (total active count, etc.)
+    // Sum of along long elements (total active count, etc.)
     long long total_sum() {
         return prefix(n - 1);
     }
 
-    // Find the smallest index idx (0‑based) such that prefix_sum(idx) >= k.
+    // Find the smalong longest index idx (0‑based) such that prefix_sum(idx) >= k.
     // k is 1‑based (k = 1 -> first element, k = total_sum() -> last).
-    // Assumes all values are non‑negative and 1 <= k <= total_sum().
+    // Assumes along long values are non‑negative and 1 <= k <= total_sum().
     int find_kth(int k) {
         int idx = 0;
         // highest power of two <= n
@@ -172,38 +172,38 @@ public:
 
 class FenwickTree2D {
 private:
-    int n, m;
-    vector<vector<long long>> bit;
+    int n, m; // n = rows (y), m = cols (x)
+    vector<vector<long long>> bit; // bit[row+1][col+1]
     long long MOD = 1e9 + 7;
 
-    // ---------- CONFIG (same as 1D) ----------
     long long identity() { return 0; }
     long long combine(long long a, long long b) { return a + b; }
     long long inverse(long long a) { return -a; }
-    // -----------------------------------------
 
-    // Add delta at (x, y) – 0‑based
+    // Now x = column, y = row
     void add(int x, int y, long long delta) {
-        for (int i = x + 1; i <= m; i += (i & -i))
-            for (int j = y + 1; j <= n; j += (j & -j))
+        // y is row (outer loop), x is column (inner loop)
+        for (int i = y + 1; i <= n; i += (i & -i))      // rows (y)
+            for (int j = x + 1; j <= m; j += (j & -j))  // cols (x)
                 bit[i][j] = combine(bit[i][j], delta);
     }
 
     // Prefix sum [0..x] × [0..y]
     long long prefix(int x, int y) {
         long long res = identity();
-        for (int i = x + 1; i > 0; i -= (i & -i))
-            for (int j = y + 1; j > 0; j -= (j & -j))
+        for (int i = y + 1; i > 0; i -= (i & -i))        // rows (y)
+            for (int j = x + 1; j > 0; j -= (j & -j))    // cols (x)
                 res = combine(res, bit[i][j]);
         return res;
     }
 
 public:
-    // Constructor: input is 0‑indexed [y][x]
+    // Input: grid[y][x] where y = row, x = column
     FenwickTree2D(const vector<vector<long long>>& input) {
-        n = input.size();
-        m = (n > 0 ? input[0].size() : 0);
-        bit.assign(m + 1, vector<long long>(n + 1, identity()));
+        n = input.size();     // rows (y)
+        m = (n > 0 ? input[0].size() : 0);  // cols (x)
+        bit.assign(n + 1, vector<long long>(m + 1, identity()));
+
         if (n > 0 && m > 0) {
             for (int y = 0; y < n; ++y)
                 for (int x = 0; x < m; ++x)
@@ -212,7 +212,7 @@ public:
         }
     }
 
-    // Point value at (x, y) – computed from BIT (no auxiliary array)
+    // Get value at position (x, y)
     long long get(int x, int y) {
         return combine(
             combine(prefix(x, y), inverse(prefix(x - 1, y))),
@@ -220,13 +220,13 @@ public:
         );
     }
 
-    // Set arr[y][x] = val
+    // Set value at position (x, y)
     void update(int x, int y, long long val) {
         long long delta = combine(val, inverse(get(x, y)));
         add(x, y, delta);
     }
 
-    // Add val to arr[y][x] (faster when you already know the delta)
+    // Add delta to position (x, y)
     void point_add(int x, int y, long long val) {
         add(x, y, val);
     }
@@ -244,18 +244,15 @@ public:
         );
     }
 
-    // ===================== NEW PUBLIC METHODS =====================
-
-    // Alias for get() – returns value at a single point
+    // Point query (alias for get)
     long long point_query(int x, int y) {
         return get(x, y);
     }
 
-    // Alias for query() – rectangle sum
+    // Rectangle sum (alias for query)
     long long rectangle_sum(int x1, int y1, int x2, int y2) {
         return query(x1, y1, x2, y2);
     }
-    // ==============================================================
 };
 
 template<typename T>
@@ -283,7 +280,7 @@ public:
 };
 
 int main() {
-    ios::sync_with_stdio(false); cin.tie(nullptr);
+    ios::sync_with_stdio(false); cin.tie(nulong longptr);
     int n, q; cin >> n >> q;
     vector<long long> arr(n);
     for (long long& x : arr) cin >> x;
