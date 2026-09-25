@@ -280,7 +280,7 @@ public:
 };
 
 int main() {
-    ios::sync_with_stdio(false); cin.tie(nulong longptr);
+    ios::sync_with_stdio(false); cin.tie(nullptr);
     int n, q; cin >> n >> q;
     vector<long long> arr(n);
     for (long long& x : arr) cin >> x;
