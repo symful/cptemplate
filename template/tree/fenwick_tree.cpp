@@ -1,293 +1,154 @@
 #include <bits/stdc++.h>
 using namespace std;
+using ll = long long;
 
-class FenwickTree {
-private:
-    vector<long long> bit;
+/* ============================================================================
+   FENWICK (BIT) FAMILY
+   ----------------------------------------------------------------------------
+   1. BIT        : point add, prefix / range query, lower_bound
+   2. BITRange   : range add, range sum
+   3. BIT2D      : 2D point add, rectangle sum
+   ========================================================================= */
+
+
+/* ----------------------------------------------------------------------------
+   1. BIT — point add, prefix / range query
+   ------------------------------------------------------------------------- */
+template <typename T = ll>
+struct BIT {
     int n;
-    long long MOD = 1e9 + 7; // Useful for modular operations
+    vector<T> b;
 
-    // =================== CONFIG (The Cheat Sheet) ===================
+    BIT(int n = 0) : n(n), b(n + 1, T{}) {}
 
-    // --- 1. IDENTITY ---
-    // SUM / XOR / MOD_SUM: 0
-    // PROD / MOD_PROD:     1
-    long long identity() { return 0; }
-
-    // --- 2. COMBINE ---
-    // SUM:      return a + b;
-    // XOR:      return a ^ b;
-    // PROD:     return a * b;
-    // MOD_SUM:  return (a + b) % MOD;
-    // MOD_PROD: return (a * b) % MOD;
-    long long combine(long long a, long long b) {
-        return a + b;
+    BIT(const vector<T>& a) : n((int)a.size()), b(n + 1, T{}) {
+        for (int i = 0; i < n; i++) add(i, a[i]);
     }
 
-    // --- 3. INVERSE (Crucial for Range Queries) ---
-    // SUM:      return -a;
-    // XOR:      return a; (XOR is its own inverse)
-    // MOD_SUM:  return (MOD - a) % MOD;
-    // MOD_PROD: return modInverse(a); (Requires binary exponentiation: binpow(a, MOD-2))
-    long long inverse(long long a) {
-        return -a;
-    }
-    // ================================================================
-
-    void build(vector<long long>& arr) {
-        for (int i = 1; i <= n; i++) {
-            bit[i] = combine(bit[i], arr[i - 1]);
-            int p = i + (i & -i);
-            if (p <= n) bit[p] = combine(bit[p], bit[i]);
-        }
+    // add d to position i (0-indexed)
+    void add(int i, T d) {
+        for (++i; i <= n; i += i & -i) b[i] += d;
     }
 
-    long long prefix(int pos) {
-        long long res = identity();
-        for (int idx = pos + 1; idx > 0; idx -= (idx & -idx)) {
-            res = combine(res, bit[idx]);
-        }
-        return res;
+    // sum of [0..i]
+    T prefix(int i) const {
+        T r{};
+        for (++i; i > 0; i -= i & -i) r += b[i];
+        return r;
     }
 
-    long long get(int pos) {
-        return combine(prefix(pos), inverse(prefix(pos - 1)));
+    // sum of [l..r] inclusive; returns T{} if l > r
+    T range(int l, int r) const {
+        return l > r ? T{} : prefix(r) - (l ? prefix(l - 1) : T{});
     }
 
-    void add(int pos, long long delta) {
-        for (int idx = pos + 1; idx <= n; idx += (idx & -idx)) {
-            bit[idx] = combine(bit[idx], delta);
-        }
-    }
-
-public:
-    FenwickTree(vector<long long>& arr) {
-        n = arr.size();
-        bit.assign(n + 1, identity());
-        if (n > 0) build(arr);
-    }
-
-    // Point Update (Safely sets arr[pos] = val)
-    void update(int pos, long long val) {
-        long long delta = combine(val, inverse(get(pos)));
-        add(pos, delta);
-    }
-
-    // Point Add (arr[pos] += val, faster if you don't need to overwrite)
-    void point_add(int pos, long long val) {
-        add(pos, val);
-    }
-
-    // Range Query [l, r]
-    long long query(int l, int r) {
-        return combine(prefix(r), inverse(prefix(l - 1)));
-    }
-
-    // ===================== NEW PUBLIC METHODS =====================
-
-    // Public wrapper for prefix sum [0..pos]
-    long long prefix_sum(int pos) {
-        return prefix(pos);
-    }
-
-    // Sum of along long elements (total active count, etc.)
-    long long total_sum() {
-        return prefix(n - 1);
-    }
-
-    // Find the smalong longest index idx (0‑based) such that prefix_sum(idx) >= k.
-    // k is 1‑based (k = 1 -> first element, k = total_sum() -> last).
-    // Assumes along long values are non‑negative and 1 <= k <= total_sum().
-    int find_kth(int k) {
-        int idx = 0;
-        // highest power of two <= n
-        int bitMask = 1;
-        while ((bitMask << 1) <= n) bitMask <<= 1;
-        for (int step = bitMask; step; step >>= 1) {
-            int next = idx + step;
-            if (next <= n && bit[next] < k) {
-                idx = next;
-                k -= bit[next];
+    // Smallest index p in [0, n-1] with prefix(p) >= target.
+    // Assumes all entries are non-negative. Returns n if none.
+    int lower_bound(T target) const {
+        int idx = 0, step = 1;
+        while ((step << 1) <= n) step <<= 1;
+        T cur{};
+        for (; step; step >>= 1) {
+            if (idx + step <= n && cur + b[idx + step] < target) {
+                idx += step;
+                cur += b[idx];
             }
         }
-        return idx; // 0‑based index of the k‑th element
+        return idx;   // 0-based; prefix(idx) >= target
     }
-    // ==============================================================
 };
 
-class RangeFenwickTree {
-private:
-    vector<long long> bit1, bit2;
+
+/* ----------------------------------------------------------------------------
+   2. BITRange — range add, range sum
+   ------------------------------------------------------------------------- */
+template <typename T = ll>
+struct BITRange {
     int n;
+    vector<T> b1, b2;
 
-    void add(vector<long long>& bit, int pos, long long val) {
-        for (int idx = pos + 1; idx <= n; idx += (idx & -idx)) bit[idx] += val;
+    BITRange(int n = 0) : n(n), b1(n + 1, T{}), b2(n + 1, T{}) {}
+
+    void _add(vector<T>& b, int i, T v) {
+        for (++i; i <= n; i += i & -i) b[i] += v;
     }
 
-    long long query_internal(const vector<long long>& bit, int pos) {
-        long long res = 0;
-        for (int idx = pos + 1; idx > 0; idx -= (idx & -idx)) res += bit[idx];
-        return res;
+    T _sum(const vector<T>& b, int i) const {
+        T r{};
+        for (++i; i > 0; i -= i & -i) r += b[i];
+        return r;
     }
 
-    long long prefix(int pos) {
-        // Core RURQ Math: sum(bit1) * pos - sum(bit2)
-        return query_internal(bit1, pos) * pos - query_internal(bit2, pos);
+    // add v to every element in [l..r]
+    void range_add(int l, int r, T v) {
+        _add(b1, l, v);         _add(b1, r + 1, -v);
+        _add(b2, l, v * (l - 1)); _add(b2, r + 1, -v * r);
     }
 
-public:
-    RangeFenwickTree(vector<int>& arr) {
-        n = arr.size();
-        bit1.assign(n + 1, 0);
-        bit2.assign(n + 1, 0);
-        for (int i = 0; i < n; i++) update(i, i, arr[i]);
+    // sum of [0..i]
+    T prefix(int i) const {
+        return _sum(b1, i) * i - _sum(b2, i);
     }
 
-    // Range Update: Add 'val' to range [l, r]
-    void update(int l, int r, long long val) {
-        add(bit1, l, val);
-        add(bit1, r + 1, -val);
-        add(bit2, l, val * (l - 1));
-        add(bit2, r + 1, -val * r);
-    }
-
-    // Range Query: Sum of range [l, r]
-    long long query(int l, int r) {
-        return prefix(r) - prefix(l - 1);
-    }
-
-    // ===================== NEW PUBLIC METHODS =====================
-
-    // Query the value at a single position (after range updates)
-    long long point_query(int pos) {
-        return query(pos, pos);
-    }
-
-    // Alias for query (keeps naming consistent with other trees)
-    long long range_sum(int l, int r) {
-        return query(l, r);
-    }
-    // ==============================================================
-};
-
-class FenwickTree2D {
-private:
-    int n, m; // n = rows (y), m = cols (x)
-    vector<vector<long long>> bit; // bit[row+1][col+1]
-    long long MOD = 1e9 + 7;
-
-    long long identity() { return 0; }
-    long long combine(long long a, long long b) { return a + b; }
-    long long inverse(long long a) { return -a; }
-
-    // Now x = column, y = row
-    void add(int x, int y, long long delta) {
-        // y is row (outer loop), x is column (inner loop)
-        for (int i = y + 1; i <= n; i += (i & -i))      // rows (y)
-            for (int j = x + 1; j <= m; j += (j & -j))  // cols (x)
-                bit[i][j] = combine(bit[i][j], delta);
-    }
-
-    // Prefix sum [0..x] × [0..y]
-    long long prefix(int x, int y) {
-        long long res = identity();
-        for (int i = y + 1; i > 0; i -= (i & -i))        // rows (y)
-            for (int j = x + 1; j > 0; j -= (j & -j))    // cols (x)
-                res = combine(res, bit[i][j]);
-        return res;
-    }
-
-public:
-    // Input: grid[y][x] where y = row, x = column
-    FenwickTree2D(const vector<vector<long long>>& input) {
-        n = input.size();     // rows (y)
-        m = (n > 0 ? input[0].size() : 0);  // cols (x)
-        bit.assign(n + 1, vector<long long>(m + 1, identity()));
-
-        if (n > 0 && m > 0) {
-            for (int y = 0; y < n; ++y)
-                for (int x = 0; x < m; ++x)
-                    if (input[y][x] != identity())
-                        add(x, y, input[y][x]);
-        }
-    }
-
-    // Get value at position (x, y)
-    long long get(int x, int y) {
-        return combine(
-            combine(prefix(x, y), inverse(prefix(x - 1, y))),
-            combine(inverse(prefix(x, y - 1)), prefix(x - 1, y - 1))
-        );
-    }
-
-    // Set value at position (x, y)
-    void update(int x, int y, long long val) {
-        long long delta = combine(val, inverse(get(x, y)));
-        add(x, y, delta);
-    }
-
-    // Add delta to position (x, y)
-    void point_add(int x, int y, long long val) {
-        add(x, y, val);
-    }
-
-    // Prefix query [0..x] × [0..y]
-    long long prefix_query(int x, int y) {
-        return prefix(x, y);
-    }
-
-    // Range query: inclusive rectangle [x1..x2] × [y1..y2]
-    long long query(int x1, int y1, int x2, int y2) {
-        return combine(
-            combine(prefix(x2, y2), inverse(prefix(x1 - 1, y2))),
-            combine(inverse(prefix(x2, y1 - 1)), prefix(x1 - 1, y1 - 1))
-        );
-    }
-
-    // Point query (alias for get)
-    long long point_query(int x, int y) {
-        return get(x, y);
-    }
-
-    // Rectangle sum (alias for query)
-    long long rectangle_sum(int x1, int y1, int x2, int y2) {
-        return query(x1, y1, x2, y2);
+    // sum of [l..r] inclusive
+    T range(int l, int r) const {
+        return prefix(r) - (l ? prefix(l - 1) : T{});
     }
 };
 
-template<typename T>
-class Compressor {
-private:
-    vector<T> vals;
-public:
-    Compressor() {}
-    Compressor(const vector<T>& v) { add(v); }
 
-    void add(const T& x) { vals.push_back(x); }
-    void add(const vector<T>& v) { vals.insert(vals.end(), v.begin(), v.end()); }
+/* ----------------------------------------------------------------------------
+   3. BIT2D — point add, rectangle sum (0-indexed)
+   ------------------------------------------------------------------------- */
+template <typename T = ll>
+struct BIT2D {
+    int n, m;
+    vector<vector<T>> b;
 
-    void build() {
-        sort(vals.begin(), vals.end());
-        vals.erase(unique(vals.begin(), vals.end()), vals.end());
+    BIT2D(int n = 0, int m = 0)
+        : n(n), m(m), b(n + 1, vector<T>(m + 1, T{})) {}
+
+    // add v at (x, y)
+    void add(int x, int y, T v) {
+        for (int i = x + 1; i <= n; i += i & -i)
+            for (int j = y + 1; j <= m; j += j & -j)
+                b[i][j] += v;
     }
 
-    int compress(const T& x) const {
-        return lower_bound(vals.begin(), vals.end(), x) - vals.begin();
+    // sum of [0..x] x [0..y]
+    T prefix(int x, int y) const {
+        T r{};
+        for (int i = x + 1; i > 0; i -= i & -i)
+            for (int j = y + 1; j > 0; j -= j & -j)
+                r += b[i][j];
+        return r;
     }
 
-    int size() const { return vals.size(); }
-    const vector<T>& values() const { return vals; }
+    // sum of [x1..x2] x [y1..y2]
+    T range(int x1, int y1, int x2, int y2) const {
+        if (x1 > x2 || y1 > y2) return T{};
+        T r = prefix(x2, y2);
+        if (x1) r -= prefix(x1 - 1, y2);
+        if (y1) r -= prefix(x2, y1 - 1);
+        if (x1 && y1) r += prefix(x1 - 1, y1 - 1);
+        return r;
+    }
 };
 
-int main() {
-    ios::sync_with_stdio(false); cin.tie(nullptr);
-    int n, q; cin >> n >> q;
-    vector<long long> arr(n);
-    for (long long& x : arr) cin >> x;
-    FenwickTree fw(arr);
-    while (q--) {
-        int c, l, r; cin >> c >> l >> r;
-        if (c == 1) fw.update(l-1, r);
-        else cout << fw.query(l-1, r-1) << '\n';
-    }
-}
+/* ============================================================================
+   USAGE
+   ----------------------------------------------------------------------------
+   vector<ll> a = {1,2,3,4,5};
+   BIT<ll> bit(a);
+   bit.add(0, 10);                 // a[0] += 10
+   cout << bit.range(0, 2);        // 10+2+3 = 15
+   cout << bit.lower_bound(16);    // first prefix >= 16
+
+   BITRange<ll> br(5);
+   br.range_add(0, 4, 3);          // all +3
+   cout << br.range(1, 3);         // 9
+
+   BIT2D<ll> f2(100, 100);
+   f2.add(10, 20, 5);
+   cout << f2.range(0, 0, 50, 50); // 5
+   ========================================================================= */
