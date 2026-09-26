@@ -7,8 +7,9 @@ using ll = long long;
    UNIFIED SEGMENT TREE FAMILY (100% COVERAGE)
    ============================================================================
    EXACTLY ONE TOP-LEVEL CLASS: `SegTree`.
+   All variants are nested inside it or configured via Traits.
 
-   [MODIFICATION TABLE: HOW TO CHANGE TRAITS]
+   [MASTER MODIFICATION CHEAT SHEET]
    ---------------------------------------------------------------------------
    | Variant          | Node  | Tag      | op(a,b)   | id()      | apply(x, v, len)       | compose(old, v) |
    |------------------|-------|----------|-----------|-----------|------------------------|-----------------|
@@ -21,15 +22,21 @@ using ll = long long;
    ---------------------------------------------------------------------------
    [HOW TO USE BEATS]
    Use `BeatsTr` for Range Chmin/Chmax/Add/Sum/Min/Max. It handles all 5 ops.
-   ============================================================================ */
+   [HOW TO USE DYNAMIC/SPARSE]
+   Set `IsDyn = true` in `Core<Policy, true>`. Coordinates can be up to 1e18.
+   ========================================================================= */
 
 class SegTree {
 public:
-    /* --- TRAITS --- */
+    /* ==========================================================================
+       PART 1: TRAITS (Configure the Core tree behavior)
+       ========================================================================== */
+
+    // [WHEN TO USE] Point updates, Range Sum/Min/Max queries.
     struct SumAddTr {
         using Node = ll; using Tag = ll;
-        static Node op(Node a, Node b) { return a + b; }
-        static Node id() { return 0; }
+        static Node op(Node a, Node b) { return a + b; } // [MODIFY] Change to min/max/xor
+        static Node id() { return 0; }                   // [MODIFY] Change to LLONG_MAX/MIN/0
         static Tag no_tag() { return 0; }
         static bool has_tag(const Tag& t) { return t != 0; }
         static void apply(Node& x, const Tag& v, int len) { x += v * len; }
@@ -39,6 +46,7 @@ public:
         static Node initial(ll, ll) { return 0; }
     };
 
+    // [WHEN TO USE] Range Add, Range Min/Max.
     struct MinAddTr {
         using Node = ll; using Tag = ll;
         static Node op(Node a, Node b) { return min(a, b); }
@@ -52,9 +60,11 @@ public:
         static Node initial(ll, ll) { return LLONG_MAX; }
     };
 
-    struct BeatsTr { // Range Chmin, Chmax, Add, Sum, Min, Max
+    // [WHEN TO USE] Segment Tree Beats! Range Chmin, Chmax, Add, Sum, Min, Max.
+    struct BeatsTr {
         struct Node { ll sum, mx, smx, mn, smn; int mxc, mnc; };
         struct Tag { ll add = 0; ll chmin = LLONG_MAX; ll chmax = LLONG_MIN; };
+
         static Node op(const Node& a, const Node& b) {
             Node r{a.sum + b.sum, max(a.mx, b.mx), LLONG_MIN, min(a.mn, b.mn), LLONG_MAX, 0, 0};
             if (a.mx == r.mx) r.mxc += a.mxc; else r.smx = max(r.smx, a.mx);
@@ -66,6 +76,7 @@ public:
         static Node id() { return {0, LLONG_MIN, LLONG_MIN, LLONG_MAX, LLONG_MAX, 0, 0}; }
         static Tag no_tag() { return {}; }
         static bool has_tag(const Tag& t) { return t.add != 0 || t.chmin != LLONG_MAX || t.chmax != LLONG_MIN; }
+
         static void apply(Node& x, const Tag& v, int len) {
             if (v.add != 0) { x.sum += v.add * len; x.mx += v.add; x.smx += v.add; x.mn += v.add; x.smn += v.add; }
             if (v.chmin != LLONG_MAX && x.mx > v.chmin) {
@@ -93,8 +104,13 @@ public:
         static Node initial(ll, ll) { return {0, LLONG_MIN, LLONG_MIN, LLONG_MAX, LLONG_MAX, 0, 0}; }
     };
 
-    /* --- UNIFIED CORE (Point, Range, Dynamic, Beats) --- */
-    /* [WHEN TO USE] IsDyn=false for N<=1e7. IsDyn=true for sparse coords (1 to 1e18). */
+    /* ==========================================================================
+       PART 2: UNIFIED CORE (Point, Range, Dynamic, Beats)
+       ==========================================================================
+       [WHEN TO USE]
+         IsDyn = false: Standard array of size N <= 10^7. (Fastest, cache friendly).
+         IsDyn = true:  Sparse coordinates (e.g., L=1, R=10^18). Nodes created on demand.
+       ========================================================================== */
     template <typename Policy, bool IsDyn = false>
     class Core {
         using Node = typename Policy::Node;
@@ -104,20 +120,22 @@ public:
         ll L = 0, R = -1;
         int root = 1;
 
-        // Helper functions for children indices
         int cl(int i) const { return IsDyn ? t[i].lc : (i << 1); }
         int cr(int i) const { return IsDyn ? t[i].rc : (i << 1 | 1); }
 
         int alloc(const Node& v, const Tag& tag, int lc = 0, int rc = 0) {
             t.push_back({v, tag, lc, rc}); return (int)t.size() - 1;
         }
+
+        // Materialize children for dynamic segment tree
         void mk(int i, ll l, ll r) {
             if constexpr (!IsDyn) return;
-            if (t[i].lc) return;
+            if (t[i].lc) return; // Already exists
             ll m = (l + r) >> 1;
             t[i].lc = alloc(Policy::initial(l, m), Policy::no_tag());
             t[i].rc = alloc(Policy::initial(m + 1, r), Policy::no_tag());
         }
+
         void push(int i, ll l, ll r) {
             if (l == r || !Policy::has_tag(t[i].t)) return;
             mk(i, l, r);
@@ -129,39 +147,47 @@ public:
             Policy::compose(t[ri].t, t[i].t);
             t[i].t = Policy::no_tag();
         }
+
         void pull(int i) { t[i].v = Policy::op(t[cl(i)].v, t[cr(i)].v); }
 
         void upd(int i, ll l, ll r, ll ql, ll qr, const Tag& tg) {
             if (qr < l || r < ql) return;
-            if (Policy::trivial(t[i].v, tg)) return;
+            if (Policy::trivial(t[i].v, tg)) return; // BEATS OPTIMIZATION: Short-circuit
             if (ql <= l && r <= qr && Policy::fit(t[i].v, tg, (int)(r - l + 1))) {
                 Policy::apply(t[i].v, tg, (int)(r - l + 1));
                 Policy::compose(t[i].t, tg);
                 return;
             }
             if (l == r) return;
+            mk(i, l, r); // CRITICAL: Materialize children before recursing
             push(i, l, r);
             ll m = (l + r) >> 1;
             upd(cl(i), l, m, ql, qr, tg);
             upd(cr(i), m + 1, r, ql, qr, tg);
             pull(i);
         }
+
         Node qry(int i, ll l, ll r, ll ql, ll qr) {
-            if (qr < l || r < ql) return Policy::id();
+            if (!i || qr < l || r < ql) return Policy::id();
             if (ql <= l && r <= qr) return t[i].v;
+            mk(i, l, r); // CRITICAL: Materialize children before querying
             push(i, l, r);
             ll m = (l + r) >> 1;
             return Policy::op(qry(cl(i), l, m, ql, qr), qry(cr(i), m + 1, r, ql, qr));
         }
+
         void upd_pt(int i, ll l, ll r, int p, const Node& v) {
             if (l == r) { t[i].v = v; t[i].t = Policy::no_tag(); return; }
+            mk(i, l, r); // CRITICAL: Materialize children
             push(i, l, r);
             ll m = (l + r) >> 1;
             if (p <= m) upd_pt(cl(i), l, m, p, v);
             else upd_pt(cr(i), m + 1, r, p, v);
             pull(i);
         }
+
     public:
+        // Static constructor (IsDyn = false)
         Core(const vector<Node>& a) : L(0), R((ll)a.size() - 1) {
             int n = (int)a.size();
             t.resize(4 * max(n, 1));
@@ -175,16 +201,18 @@ public:
             if (n) bld(1, 0, n - 1);
             root = 1;
         }
-        Core(ll L_, ll R_) : L(L_), R(R_) { // Use ONLY for IsDyn = true
-            t.push_back({});
+
+        // Dynamic constructor (IsDyn = true)
+        Core(ll L_, ll R_) : L(L_), R(R_) {
+            t.push_back({}); // Dummy node at index 0
             root = alloc(Policy::initial(L, R), Policy::no_tag());
         }
+
         void update_point(int p, const Node& v) { upd_pt(root, L, R, p, v); }
         void update_range(ll l, ll r, const Tag& tg) { upd(root, L, R, l, r, tg); }
         Node query(ll l, ll r) { return qry(root, L, R, l, r); }
 
         // [HOW TO USE] find_first: Leftmost index >= l where prefix op satisfies pred.
-        // FIX: Renamed lambda params to l_ and r_ to avoid shadowing member functions cl() and cr()
         template <typename P>
         int find_first(ll l, P pred) {
             Node acc = Policy::id();
@@ -195,6 +223,7 @@ public:
                     if (!pred(nxt)) { acc = nxt; return -1; }
                     if (l_ == r_) return l_;
                 }
+                mk(i, l_, r_); // CRITICAL: Materialize children
                 push(i, l_, r_);
                 ll m = (l_ + r_) >> 1;
                 int res = dfs(cl(i), l_, m, ql, acc);
@@ -205,9 +234,12 @@ public:
         }
     };
 
-    /* --- NESTED VARIANTS --- */
+    /* ==========================================================================
+       PART 3: NESTED VARIANTS (100% Coverage)
+       ========================================================================== */
 
     // [WHEN TO USE] Offline 2D range counting, k-th smallest in range.
+    // [COMPLEXITY] O(N log N) build, O(log^2 N) per query.
     class MergeSort {
         int n; vector<vector<ll>> t;
         void build(int i, int l, int r, const vector<ll>& a) {
@@ -237,6 +269,7 @@ public:
     };
 
     // [WHEN TO USE] Dynamic Convex Hull Trick (Lines added online, queries online).
+    // [COMPLEXITY] O(log X) per insertion/query, where X is the coordinate range.
     template <bool IsMax = true>
     class LiChao {
         struct Line { ll m = 0, b = IsMax ? LLONG_MIN/4 : LLONG_MAX/4; ll eval(ll x) const { return m * x + b; } };
@@ -270,6 +303,8 @@ public:
     using LiChaoMin = LiChao<false>;
 
     // [WHEN TO USE] 2D Grid point updates, rectangle queries.
+    // [COMPLEXITY] O(N * M) memory, O(log N * log M) per query.
+    // [MODIFY] For sparse 2D grids, replace inner vector with a dynamic node.
     template <typename Policy>
     class Table2D {
         using Node = typename Policy::Node;
@@ -331,6 +366,8 @@ public:
     };
 
     // [WHEN TO USE] Historical queries ("what was the sum at time T?").
+    // [COMPLEXITY] O(log N) time and space per update.
+    // [MODIFY] For Persistent Lazy Propagation, you MUST implement copy-on-write in `push`.
     template <typename Policy>
     class Persistent {
         using Node = typename Policy::Node;
@@ -366,6 +403,8 @@ public:
     };
 
     // [WHEN TO USE] Static arrays, NO updates, only RMQ (Min/Max/GCD). O(1) query.
+    // [MODIFY] ONLY works for idempotent operations (min, max, gcd, AND, OR).
+    // Does NOT work for Sum or XOR.
     template <typename Policy>
     class SparseTable {
         int n; vector<vector<typename Policy::Node>> t; vector<int> lg;
